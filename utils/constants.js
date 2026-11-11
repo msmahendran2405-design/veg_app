@@ -1,0 +1,45 @@
+export const VEGETABLES = [
+  { name: 'Tomato', emoji: '🍅' },
+  { name: 'Potato', emoji: '🥔' },
+  { name: 'Onion', emoji: '🧅' },
+  { name: 'Carrot', emoji: '🥕' },
+  { name: 'Capsicum', emoji: '🫑' },
+  { name: 'Spinach', emoji: '🥬' },
+  { name: 'Cauliflower', emoji: '🥦' },
+  { name: 'Brinjal', emoji: '🍆' },
+  { name: 'Cabbage', emoji: '🥬' },
+  { name: 'Green Chilli', emoji: '🌶️' },
+  { name: 'Beans', emoji: '🫘' },
+  { name: 'Cucumber', emoji: '🥒' },
+  { name: 'Radish', emoji: '🥕' },
+  { name: 'Bitter Gourd', emoji: '🥒' },
+  { name: 'Bottle Gourd', emoji: '🥒' },
+  { name: 'Okra (Lady Finger)', emoji: '🌿' },
+  { name: 'Peas', emoji: '🟢' },
+  { name: 'Coriander', emoji: '🌿' },
+  { name: 'Mint', emoji: '🌿' },
+  { name: 'Ginger', emoji: '🫚' },
+];
+
+export const WASTAGE_REASONS = [
+  'Spoiled/Rotten',
+  'Damaged in Transport',
+  'Unsold/Expired',
+  'Overstock',
+  'Quality Rejection',
+  'Other',
+];
+
+export const COLORS = {
+  primary: '#2E7D32',
+  primaryLight: '#4CAF50',
+  primaryDark: '#1B5E20',
+  success: '#4CAF50',
+  warning: '#FF9800',
+  error: '#F44336',
+  background: '#F5F5F5',
+  card: '#FFFFFF',
+  text: '#212121',
+  textSecondary: '#757575',
+  border: '#E0E0E0',
+};
