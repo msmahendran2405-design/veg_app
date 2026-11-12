@@ -10,6 +10,7 @@ import {
   Alert,
   TextInput,
   Modal,
+  Platform,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
@@ -19,6 +20,17 @@ import { addBatchEntries } from '../utils/database';
 import { COLORS, VEGETABLES } from '../utils/constants';
 import { formatCurrency } from '../utils/helpers';
 import VegetablePicker from '../components/VegetablePicker';
+
+const showAlert = (title, message, buttons) => {
+  if (Platform.OS === 'web' && typeof window !== 'undefined') {
+    window.alert(`${title}\n\n${message || ''}`);
+    if (buttons && buttons[0] && buttons[0].onPress) {
+      buttons[0].onPress();
+    }
+  } else {
+    Alert.alert(title, message, buttons);
+  }
+};
 
 export default function AiScannerScreen() {
   const router = useRouter();
@@ -114,7 +126,7 @@ export default function AiScannerScreen() {
   // Scan with NVIDIA AI
   const handleScan = async () => {
     if (!imageBase64) {
-      Alert.alert('No Image', 'Please capture or select a handwritten receipt photo first.');
+      showAlert('No Image', 'Please capture or select a handwritten receipt photo first.');
       return;
     }
 
@@ -126,18 +138,18 @@ export default function AiScannerScreen() {
         setExtractedItems(res.items || []);
         setDemoBanner(res.demoMode);
         if (res.demoMode) {
-          Alert.alert(
+          showAlert(
             'NVIDIA Demo Results 🤖',
             'Sample handwritten bill items extracted! Add your free NVIDIA API Key in "AI Key" to connect your live cloud model.'
           );
         } else {
-          Alert.alert('Success ✅', `NVIDIA AI detected ${res.items.length} items from your photo!`);
+          showAlert('Success ✅', `Detected ${res.items.length} items from your photo!`);
         }
       } else {
-        Alert.alert('Scan Failed', res.error || 'Could not parse image.');
+        showAlert('Scan Failed', res.error || 'Could not parse image.');
       }
     } catch (err) {
-      Alert.alert('Error', err.message);
+      showAlert('Error', err.message);
     } finally {
       setLoading(false);
     }
@@ -146,7 +158,7 @@ export default function AiScannerScreen() {
   // Save extracted items to Excel Database
   const handleSaveToExcel = async () => {
     if (extractedItems.length === 0) {
-      Alert.alert('Nothing to save', 'Extract some items first.');
+      showAlert('Nothing to save', 'Extract some items first.');
       return;
     }
 
@@ -155,27 +167,14 @@ export default function AiScannerScreen() {
       await addBatchEntries(extractedItems);
       setLoading(false);
 
-      Alert.alert(
+      showAlert(
         'Saved to Excel! 📊',
-        `${extractedItems.length} records added directly to your Excel sheets (Stock, Sales, Wastage & Inventory).`,
-        [
-          {
-            text: 'Go to Dashboard',
-            onPress: () => router.push('/'),
-          },
-          {
-            text: 'Scan Another',
-            onPress: () => {
-              setExtractedItems([]);
-              setImageUri(null);
-              setImageBase64(null);
-            },
-          },
-        ]
+        `${extractedItems.length} records added directly to your Excel sheets (Stock, Sales, Wastage & Inventory).`
       );
+      router.push('/');
     } catch (e) {
       setLoading(false);
-      Alert.alert('Save Error', 'Failed to save entries to Excel: ' + e.message);
+      showAlert('Save Error', 'Failed to save entries to Excel: ' + e.message);
     }
   };
 
@@ -183,7 +182,7 @@ export default function AiScannerScreen() {
     await setNvidiaApiKey(apiKeyInput);
     setSavedKey(apiKeyInput.trim());
     setKeyModalVisible(false);
-    Alert.alert('Key Saved', 'NVIDIA NIM API key updated successfully.');
+    showAlert('Key Saved', 'NVIDIA NIM API key updated successfully.');
   };
 
   const removeItem = (idx) => {
@@ -268,7 +267,7 @@ export default function AiScannerScreen() {
             <MaterialCommunityIcons name="note-text-outline" size={54} color={COLORS.textSecondary} />
             <Text style={styles.placeholderTitle}>Photograph your handwritten notebook or bill</Text>
             <Text style={styles.placeholderSub}>
-              Write: "Tomato 10kg 30, Onion 25kg 28..." on paper and snap a photo!
+              Supports Tamil (தமிழ்) & English! e.g. "தக்காளி 10kg ₹30, வெங்காயம் 25kg ₹28" on paper or slips.
             </Text>
           </View>
         )}
