@@ -17,7 +17,7 @@ import { Feather } from '@expo/vector-icons';
 import FormInput from '../components/FormInput';
 import VegetablePicker from '../components/VegetablePicker';
 import { addStockEntry, getStockEntries, getInventory } from '../utils/database';
-import { formatCurrency, formatDate } from '../utils/helpers';
+import { formatCurrency, formatDate, showAlert } from '../utils/helpers';
 import { COLORS, VEGETABLES } from '../utils/constants';
 
 export default function StockScreen() {
@@ -32,7 +32,6 @@ export default function StockScreen() {
   const [quantity, setQuantity] = useState('');
   const [buyPrice, setBuyPrice] = useState('');
   const [sellPrice, setSellPrice] = useState('');
-  const [supplier, setSupplier] = useState('');
 
   // List state
   const [stockList, setStockList] = useState([]);
@@ -65,14 +64,13 @@ export default function StockScreen() {
     setQuantity('');
     setBuyPrice('');
     setSellPrice('');
-    setSupplier('');
   };
 
   const handleSave = async () => {
-    if (!selectedVeg) return Alert.alert('Error', 'Please select a vegetable');
-    if (!quantity || parseFloat(quantity) <= 0) return Alert.alert('Error', 'Please enter a valid quantity');
-    if (!buyPrice || parseFloat(buyPrice) <= 0) return Alert.alert('Error', 'Please enter a valid purchase price');
-    if (!sellPrice || parseFloat(sellPrice) <= 0) return Alert.alert('Error', 'Please enter a valid selling price');
+    if (!selectedVeg) return showAlert('Missing Information', 'Please select a vegetable');
+    if (!quantity || parseFloat(quantity) <= 0) return showAlert('Missing Information', 'Please enter a valid quantity (kg)');
+    if (!buyPrice || parseFloat(buyPrice) <= 0) return showAlert('Missing Information', 'Please enter a valid purchase price (₹)');
+    if (!sellPrice || parseFloat(sellPrice) <= 0) return showAlert('Missing Information', 'Please enter a valid selling price (₹)');
 
     setSaving(true);
     try {
@@ -81,13 +79,13 @@ export default function StockScreen() {
         quantity: parseFloat(quantity),
         buyPrice: parseFloat(buyPrice),
         sellPrice: parseFloat(sellPrice),
-        supplier,
+        supplier: '',
         date: new Date(),
       });
-      Alert.alert('Success ✅', `${selectedVeg.name} stock added successfully!`);
+      showAlert('Success ✅', `${selectedVeg.name} stock added successfully!`);
       resetForm();
     } catch (err) {
-      Alert.alert('Error', 'Failed to save stock entry. Please try again.');
+      showAlert('Error', 'Failed to save stock entry. Please try again: ' + err.message);
       console.error(err);
     } finally {
       setSaving(false);
@@ -98,7 +96,15 @@ export default function StockScreen() {
   const expectedRevenue = quantity && sellPrice ? (parseFloat(quantity) * parseFloat(sellPrice)).toFixed(2) : '0.00';
 
   const filteredStock = searchQuery
-    ? stockList.filter((item) => item.Vegetable?.toLowerCase().includes(searchQuery.toLowerCase()))
+    ? stockList.filter((item) => {
+        const q = searchQuery.toLowerCase().trim();
+        const veg = VEGETABLES.find((v) => v.name === item.Vegetable);
+        return (
+          item.Vegetable?.toLowerCase().includes(q) ||
+          veg?.tamilName?.toLowerCase().includes(q) ||
+          veg?.phonetic?.toLowerCase().includes(q)
+        );
+      })
     : stockList;
 
   const getEmoji = (name) => {
@@ -137,7 +143,14 @@ export default function StockScreen() {
             {selectedVeg ? (
               <View style={styles.selectedVeg}>
                 <Text style={styles.selectedEmoji}>{selectedVeg.emoji}</Text>
-                <Text style={styles.selectedName}>{selectedVeg.name}</Text>
+                <View style={{ marginLeft: 8 }}>
+                  <Text style={styles.selectedName}>{selectedVeg.name}</Text>
+                  {selectedVeg.tamilName ? (
+                    <Text style={{ fontSize: 12, color: COLORS.primaryDark, fontWeight: '500' }}>
+                      {selectedVeg.tamilName}
+                    </Text>
+                  ) : null}
+                </View>
               </View>
             ) : (
               <Text style={styles.pickerPlaceholder}>Select a vegetable...</Text>
@@ -170,13 +183,6 @@ export default function StockScreen() {
             placeholder="Enter sell price"
             keyboardType="decimal-pad"
             prefix="₹"
-          />
-
-          <FormInput
-            label="Supplier Name (optional)"
-            value={supplier}
-            onChangeText={setSupplier}
-            placeholder="Enter supplier name"
           />
 
           {/* Summary */}

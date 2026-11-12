@@ -15,7 +15,7 @@ import { Feather } from '@expo/vector-icons';
 import FormInput from '../components/FormInput';
 import VegetablePicker from '../components/VegetablePicker';
 import { addSaleEntry, getInventory } from '../utils/database';
-import { formatCurrency } from '../utils/helpers';
+import { formatCurrency, showAlert } from '../utils/helpers';
 import { COLORS, VEGETABLES } from '../utils/constants';
 
 export default function SalesModal() {
@@ -73,11 +73,11 @@ export default function SalesModal() {
   const availableStock = getStock();
 
   const handleSave = async () => {
-    if (!selectedVeg) return Alert.alert('Error', 'Please select a vegetable');
-    if (!quantity || qty <= 0) return Alert.alert('Error', 'Please enter a valid quantity');
-    if (!sellPrice || sell <= 0) return Alert.alert('Error', 'Please enter a valid selling price');
+    if (!selectedVeg) return showAlert('Missing Information', 'Please select a vegetable');
+    if (!quantity || qty <= 0) return showAlert('Missing Information', 'Please enter a valid quantity');
+    if (!sellPrice || sell <= 0) return showAlert('Missing Information', 'Please enter a valid selling price');
     if (qty > availableStock && availableStock > 0) {
-      return Alert.alert('Insufficient Stock', `Only ${availableStock.toFixed(1)} kg of ${selectedVeg.name} available.`);
+      return showAlert('Insufficient Stock', `Only ${availableStock.toFixed(1)} kg of ${selectedVeg.name} available.`);
     }
 
     setSaving(true);
@@ -88,11 +88,11 @@ export default function SalesModal() {
         sellPrice: sell,
         date: new Date(),
       });
-      Alert.alert('Sale Recorded ✅', `${qty} kg of ${selectedVeg.name} sold for ${formatCurrency(totalAmount)}`, [
+      showAlert('Sale Recorded ✅', `${qty} kg of ${selectedVeg.name} sold for ${formatCurrency(totalAmount)}`, [
         { text: 'OK', onPress: () => router.back() },
       ]);
     } catch (err) {
-      Alert.alert('Error', 'Failed to save sale entry. Please try again.');
+      showAlert('Error', 'Failed to save sale entry: ' + err.message);
       console.error(err);
     } finally {
       setSaving(false);
@@ -104,7 +104,12 @@ export default function SalesModal() {
     .filter((i) => parseFloat(i.CurrentStock_kg) > 0)
     .map((i) => {
       const veg = VEGETABLES.find((v) => v.name === i.Vegetable);
-      return { name: i.Vegetable, emoji: veg ? veg.emoji : '🥬' };
+      return {
+        name: i.Vegetable,
+        tamilName: veg ? veg.tamilName : '',
+        phonetic: veg ? veg.phonetic : '',
+        emoji: veg ? veg.emoji : '🥬',
+      };
     });
 
   const pickerItems = inventoryVegs.length > 0 ? inventoryVegs : VEGETABLES;

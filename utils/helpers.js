@@ -1,3 +1,19 @@
+import { Platform, Alert } from 'react-native';
+
+/**
+ * Universal alert that works seamlessly on both Mobile and Web browsers.
+ */
+export function showAlert(title, message, buttons) {
+  if (Platform.OS === 'web' && typeof window !== 'undefined') {
+    window.alert(`${title}\n\n${message || ''}`);
+    if (buttons && buttons[0] && buttons[0].onPress) {
+      buttons[0].onPress();
+    }
+  } else {
+    Alert.alert(title, message, buttons);
+  }
+}
+
 /**
  * Format a number as Indian Rupee currency string.
  * @param {number} amount

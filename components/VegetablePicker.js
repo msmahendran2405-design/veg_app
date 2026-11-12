@@ -18,8 +18,13 @@ export default function VegetablePicker({ visible, onClose, onSelect, items }) {
 
   const filtered = useMemo(() => {
     if (!search.trim()) return list;
-    const q = search.toLowerCase();
-    return list.filter((v) => v.name.toLowerCase().includes(q));
+    const q = search.toLowerCase().trim();
+    return list.filter((v) => {
+      const eng = (v.name || '').toLowerCase();
+      const tam = (v.tamilName || '').toLowerCase();
+      const pho = (v.phonetic || '').toLowerCase();
+      return eng.includes(q) || tam.includes(q) || pho.includes(q);
+    });
   }, [search, list]);
 
   const handleSelect = (item) => {
@@ -33,7 +38,10 @@ export default function VegetablePicker({ visible, onClose, onSelect, items }) {
       <SafeAreaView style={styles.overlay}>
         <View style={styles.container}>
           <View style={styles.header}>
-            <Text style={styles.title}>Select Vegetable</Text>
+            <View>
+              <Text style={styles.title}>Select Vegetable</Text>
+              <Text style={styles.subtitle}>காய்கறி தேர்ந்தெடுக்கவும்</Text>
+            </View>
             <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
               <Feather name="x" size={24} color={COLORS.text} />
             </TouchableOpacity>
@@ -43,7 +51,7 @@ export default function VegetablePicker({ visible, onClose, onSelect, items }) {
             <Feather name="search" size={18} color={COLORS.textSecondary} />
             <TextInput
               style={styles.searchInput}
-              placeholder="Search vegetables..."
+              placeholder="Search in Tamil (தக்காளி) or English (Tomato)..."
               placeholderTextColor={COLORS.textSecondary}
               value={search}
               onChangeText={setSearch}
@@ -61,13 +69,18 @@ export default function VegetablePicker({ visible, onClose, onSelect, items }) {
             renderItem={({ item }) => (
               <TouchableOpacity style={styles.item} onPress={() => handleSelect(item)}>
                 <Text style={styles.emoji}>{item.emoji}</Text>
-                <Text style={styles.itemName}>{item.name}</Text>
+                <View style={styles.itemTextContainer}>
+                  <Text style={styles.itemName}>{item.name}</Text>
+                  {item.tamilName ? (
+                    <Text style={styles.itemTamil}>{item.tamilName}</Text>
+                  ) : null}
+                </View>
                 <Feather name="chevron-right" size={18} color={COLORS.textSecondary} />
               </TouchableOpacity>
             )}
             ListEmptyComponent={
               <View style={styles.empty}>
-                <Text style={styles.emptyText}>No vegetables found</Text>
+                <Text style={styles.emptyText}>No vegetables found / காய்கறிகள் கிடைக்கவில்லை</Text>
               </View>
             }
             ItemSeparatorComponent={() => <View style={styles.separator} />}
@@ -88,7 +101,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.card,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
-    maxHeight: '80%',
+    maxHeight: '85%',
     paddingBottom: 20,
   },
   header: {
@@ -97,12 +110,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 20,
     paddingTop: 16,
-    paddingBottom: 12,
+    paddingBottom: 10,
   },
   title: {
     fontSize: 18,
     fontWeight: '700',
     color: COLORS.text,
+  },
+  subtitle: {
+    fontSize: 12,
+    color: COLORS.primaryDark,
+    marginTop: 2,
+    fontWeight: '500',
   },
   closeBtn: {
     padding: 4,
@@ -115,34 +134,43 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     borderRadius: 10,
     paddingHorizontal: 12,
-    height: 42,
+    height: 44,
   },
   searchInput: {
     flex: 1,
-    fontSize: 15,
+    fontSize: 14,
     color: COLORS.text,
     marginLeft: 8,
   },
   item: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 14,
+    paddingVertical: 12,
     paddingHorizontal: 20,
   },
   emoji: {
-    fontSize: 26,
+    fontSize: 28,
     marginRight: 14,
   },
-  itemName: {
+  itemTextContainer: {
     flex: 1,
+    justifyContent: 'center',
+  },
+  itemName: {
     fontSize: 16,
     color: COLORS.text,
+    fontWeight: '600',
+  },
+  itemTamil: {
+    fontSize: 13,
+    color: COLORS.primary,
+    marginTop: 2,
     fontWeight: '500',
   },
   separator: {
     height: 1,
     backgroundColor: COLORS.border,
-    marginLeft: 60,
+    marginLeft: 62,
   },
   empty: {
     padding: 40,

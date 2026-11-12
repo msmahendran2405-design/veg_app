@@ -16,7 +16,7 @@ import { Feather } from '@expo/vector-icons';
 import FormInput from '../components/FormInput';
 import VegetablePicker from '../components/VegetablePicker';
 import { addWastageEntry, getWastageEntries, getWastageAnalysis } from '../utils/database';
-import { formatCurrency } from '../utils/helpers';
+import { formatCurrency, showAlert } from '../utils/helpers';
 import { COLORS, VEGETABLES, WASTAGE_REASONS } from '../utils/constants';
 
 export default function WastageScreen() {
@@ -63,9 +63,9 @@ export default function WastageScreen() {
   };
 
   const handleSave = async () => {
-    if (!selectedVeg) return Alert.alert('Error', 'Please select a vegetable');
-    if (!quantity || parseFloat(quantity) <= 0) return Alert.alert('Error', 'Please enter a valid quantity');
-    if (!selectedReason) return Alert.alert('Error', 'Please select a reason');
+    if (!selectedVeg) return showAlert('Missing Information', 'Please select a vegetable');
+    if (!quantity || parseFloat(quantity) <= 0) return showAlert('Missing Information', 'Please enter a valid quantity');
+    if (!selectedReason) return showAlert('Missing Information', 'Please select a reason');
 
     setSaving(true);
     try {
@@ -75,10 +75,10 @@ export default function WastageScreen() {
         reason: selectedReason,
         date: new Date(),
       });
-      Alert.alert('Recorded ✅', `Wastage for ${selectedVeg.name} recorded successfully.`);
+      showAlert('Recorded ✅', `Wastage for ${selectedVeg.name} recorded successfully.`);
       resetForm();
     } catch (err) {
-      Alert.alert('Error', 'Failed to save wastage entry. Please try again.');
+      showAlert('Error', 'Failed to save wastage entry: ' + err.message);
       console.error(err);
     } finally {
       setSaving(false);
@@ -132,7 +132,14 @@ export default function WastageScreen() {
             {selectedVeg ? (
               <View style={styles.selectedVeg}>
                 <Text style={styles.selectedEmoji}>{selectedVeg.emoji}</Text>
-                <Text style={styles.selectedName}>{selectedVeg.name}</Text>
+                <View style={{ marginLeft: 8 }}>
+                  <Text style={styles.selectedName}>{selectedVeg.name}</Text>
+                  {selectedVeg.tamilName ? (
+                    <Text style={{ fontSize: 12, color: COLORS.error, fontWeight: '500' }}>
+                      {selectedVeg.tamilName}
+                    </Text>
+                  ) : null}
+                </View>
               </View>
             ) : (
               <Text style={styles.pickerPlaceholder}>Select a vegetable...</Text>

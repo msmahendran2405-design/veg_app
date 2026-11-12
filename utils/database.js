@@ -2,11 +2,65 @@ import * as FileSystem from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import XLSX from 'xlsx';
+import * as XLSXModule from 'xlsx';
+const XLSX = XLSXModule.default || XLSXModule;
 import { formatDate, parseDate, getDateRange, getWeekDays, isSameDay } from './helpers';
 
 const DB_FILE = FileSystem.documentDirectory ? (FileSystem.documentDirectory + 'vegtrack_data.xlsx') : '';
 const WEB_STORAGE_KEY = 'VEGTRACK_EXCEL_DATA';
+const GOOGLE_SHEETS_WEBHOOK_KEY = 'GOOGLE_SHEETS_WEBHOOK_URL';
+
+export async function getGoogleSheetWebhookUrl() {
+  try {
+    const stored = await AsyncStorage.getItem(GOOGLE_SHEETS_WEBHOOK_KEY);
+    const envUrl = process.env.EXPO_PUBLIC_GOOGLE_SHEETS_WEBHOOK_URL;
+    const finalUrl = (stored && stored.startsWith('http')) 
+      ? stored 
+      : (envUrl && envUrl.startsWith('http') && !envUrl.includes('YOUR_DEPLOYMENT_ID') ? envUrl : null);
+    
+    if (finalUrl && stored !== finalUrl) {
+      await AsyncStorage.setItem(GOOGLE_SHEETS_WEBHOOK_KEY, finalUrl);
+    }
+    return finalUrl;
+  } catch (e) {
+    const envUrl = process.env.EXPO_PUBLIC_GOOGLE_SHEETS_WEBHOOK_URL;
+    return envUrl && envUrl.startsWith('http') && !envUrl.includes('YOUR_DEPLOYMENT_ID') ? envUrl : null;
+  }
+}
+
+export async function setGoogleSheetWebhookUrl(url) {
+  try {
+    if (!url) {
+      await AsyncStorage.removeItem(GOOGLE_SHEETS_WEBHOOK_KEY);
+    } else {
+      await AsyncStorage.setItem(GOOGLE_SHEETS_WEBHOOK_KEY, url.trim());
+    }
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
+
+async function syncToGoogleSheet(sheetName, rowData) {
+  try {
+    const webhookUrl = await getGoogleSheetWebhookUrl();
+    if (!webhookUrl) return;
+    
+    console.log(`[Google Sheets] Syncing ${sheetName} entry...`, rowData);
+    
+    // text/plain prevents CORS preflight in browsers while still delivering raw JSON to Google Apps Script
+    fetch(webhookUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ sheet: sheetName, row: rowData }),
+      mode: 'no-cors',
+    })
+      .then(() => console.log(`[Google Sheets] ${sheetName} synced successfully!`))
+      .catch((e) => console.warn('[Google Sheets Sync Error]:', e));
+  } catch (err) {
+    console.warn('[Google Sheets Sync Exception]:', err);
+  }
+}
 
 const SHEETS = {
   STOCK: 'Stock',
@@ -224,6 +278,7 @@ export async function addStockEntry({ vegetable, quantity, buyPrice, sellPrice, 
     jsonToSheet(wb, SHEETS.STOCK, data, HEADERS.STOCK);
     updateInventory(wb, vegetable);
     await saveWorkbook(wb);
+    syncToGoogleSheet(SHEETS.STOCK, entry);
     return entry;
   } catch (err) {
     console.error('addStockEntry error:', err);
@@ -261,6 +316,7 @@ export async function addSaleEntry({ vegetable, quantity, sellPrice, date }) {
     jsonToSheet(wb, SHEETS.SALES, salesData, HEADERS.SALES);
     updateInventory(wb, vegetable);
     await saveWorkbook(wb);
+    syncToGoogleSheet(SHEETS.SALES, entry);
     return entry;
   } catch (err) {
     console.error('addSaleEntry error:', err);
@@ -294,6 +350,7 @@ export async function addWastageEntry({ vegetable, quantity, reason, date }) {
     jsonToSheet(wb, SHEETS.WASTAGE, wastageData, HEADERS.WASTAGE);
     updateInventory(wb, vegetable);
     await saveWorkbook(wb);
+    syncToGoogleSheet(SHEETS.WASTAGE, entry);
     return entry;
   } catch (err) {
     console.error('addWastageEntry error:', err);
@@ -827,6 +884,11 @@ export async function addBatchEntries(items) {
     }
 
     await saveWorkbook(wb);
+    for (const item of items) {
+      const entryType = (item.type || 'stock').toLowerCase();
+      const targetSheet = entryType === 'sale' ? SHEETS.SALES : (entryType === 'wastage' ? SHEETS.WASTAGE : SHEETS.STOCK);
+      syncToGoogleSheet(targetSheet, item);
+    }
     return { success: true, count: items.length };
   } catch (err) {
     console.error('addBatchEntries error:', err);
